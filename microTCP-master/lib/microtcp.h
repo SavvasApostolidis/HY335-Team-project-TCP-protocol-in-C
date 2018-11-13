@@ -20,7 +20,7 @@
 
 #ifndef LIB_MICROTCP_H_
 #define LIB_MICROTCP_H_
-klfjksdghsfgl
+
 #include <stdint.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -35,20 +35,20 @@ klfjksdghsfgl
 #define MICROTCP_INIT_CWND (3 * MICROTCP_MSS)
 #define MICROTCP_INIT_SSTHRESH MICROTCP_WIN_SIZE
 
-    /**
-     * Possible states of the microTCP socket
-     *
-     * NOTE: You can insert any other possible state
-     * for your own convenience
-     */
-    typedef enum {
-      LISTEN,
-      ESTABLISHED,
-      CLOSING_BY_PEER,
-      CLOSING_BY_HOST,
-      CLOSED,
-      INVALID
-    } mircotcp_state_t;
+/**
+ * Possible states of the microTCP socket
+ *
+ * NOTE: You can insert any other possible state
+ * for your own convenience
+ */
+typedef enum {
+  LISTEN,
+  ESTABLISHED,
+  CLOSING_BY_PEER,
+  CLOSING_BY_HOST,
+  CLOSED,
+  INVALID
+} mircotcp_state_t;
 
 /**
  * This is the microTCP socket structure. It holds all the necessary
@@ -63,11 +63,12 @@ typedef struct {
       init_win_size; /**< The window size negotiated at the 3-way handshake */
   size_t curr_win_size; /**< The current window size */
 
-  uint8_t
-      *recvbuf;          /**< The *receive* buffer of the TCP
+  uint8_t *recvbuf;      /**< The *receive* buffer of the TCP
                               connection. It is allocated during the connection
-                            establishment and          is freed at the shutdown of the connection.
-                            This buffer is used          to retrieve the data from the network. */
+                            establishment and          is freed at the shutdown of
+                            the connection.
+                            This buffer is used          to retrieve the data from
+                            the network. */
   size_t buf_fill_level; /**< Amount of data in the buffer */
 
   size_t cwnd;
