@@ -24,7 +24,10 @@
 #include <stdint.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-
+#include <stdlib.h>
+#include <stdlib.h>
+#include <netdb.h> //sockaddr
+#include <arpa/inet.h> //inet_addr
 /*
  * Several useful constants
  */
@@ -35,6 +38,16 @@
 #define MICROTCP_INIT_CWND (3 * MICROTCP_MSS)
 #define MICROTCP_INIT_SSTHRESH MICROTCP_WIN_SIZE
 
+/*control bits*/
+#define ACK    	  4096  //0001000000000000
+#define RST		    8192 	//0010000000000000
+#define SYN    	  16384 //0100000000000000	
+#define FIN    	  32768 //1000000000000000
+#define SYN_ACK 	20480	//0101000000000000
+#define FIN_ACK 	36864	//1001000000000000
+
+
+
 /**
  * Possible states of the microTCP socket
  *
@@ -42,6 +55,7 @@
  * for your own convenience
  */
 typedef enum {
+  UKNOWN,
   LISTEN,
   ESTABLISHED,
   CLOSING_BY_PEER,
@@ -84,6 +98,11 @@ typedef struct {
   uint64_t bytes_send;
   uint64_t bytes_received;
   uint64_t bytes_lost;
+
+  /*Additional fields*/
+  struct sockaddr_in sin;
+  socklen_t address_len;
+
 } microtcp_sock_t;
 
 /**
