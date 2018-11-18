@@ -25,6 +25,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdlib.h>
 #include <netdb.h> //sockaddr
 #include <arpa/inet.h> //inet_addr
@@ -55,7 +56,7 @@
  * for your own convenience
  */
 typedef enum {
-  UKNOWN,
+  UNKNOWN,
   LISTEN,
   ESTABLISHED,
   CLOSING_BY_PEER,
@@ -102,6 +103,7 @@ typedef struct {
   /*Additional fields*/
   struct sockaddr_in sin;
   socklen_t address_len;
+
 
 } microtcp_sock_t;
 
