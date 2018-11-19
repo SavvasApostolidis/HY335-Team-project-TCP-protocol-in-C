@@ -20,7 +20,7 @@
 
 #ifndef LIB_MICROTCP_H_
 #define LIB_MICROTCP_H_
-
+#include <stdio.h> //new include for printf
 #include <stdint.h>
 #include <sys/socket.h>
 #include <sys/types.h>
