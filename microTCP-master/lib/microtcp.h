@@ -101,7 +101,7 @@ typedef struct {
   uint64_t bytes_lost;
 
   /*Additional fields*/
-  struct sockaddr_in sin;
+  struct sockaddr_in *sin;
   socklen_t address_len;
 
 
