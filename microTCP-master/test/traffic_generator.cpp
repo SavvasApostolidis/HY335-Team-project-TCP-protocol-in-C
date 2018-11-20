@@ -103,7 +103,7 @@ main (int argc, char **argv)
   signal(SIGINT, sig_handler);
 
   /* Create a microtcp socket */
-  sock = microtcp_socket (AF_INET, 0, 0);
+  sock = microtcp_socket (AF_INET, SOCK_DGRAM, 0);/*to deutero orisma htan 0*/
  /* TODO: some error checking here ??? */
 
   memset (&sin, 0, sizeof(struct sockaddr_in));
@@ -111,6 +111,10 @@ main (int argc, char **argv)
   sin.sin_port = htons (port);
   /* Bind to all available network interfaces */
   sin.sin_addr.s_addr = INADDR_ANY;
+  // sock.sin.sin_family=AF_INET;
+  // sock.sin.sin_port = htons(port);
+  // sock.sin.sin_addr.s_addr = INADDR_ANY ;
+ 
 
   if (microtcp_bind (&sock, (struct sockaddr *) &sin,
                      sizeof(struct sockaddr_in)) == -1) {
