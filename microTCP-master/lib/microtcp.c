@@ -205,9 +205,9 @@ int microtcp_connect(microtcp_sock_t *socket, const struct sockaddr *address,
         packet_read.seq_number +
         s;  // den lambanoume genika acks opote doesnt matter for now
     socket->init_win_size = MICROTCP_WIN_SIZE;
-    // socket->sin = (struct sockaddr_in *)address;
+    socket->sin = (struct sockaddr_in *)address;
     // printf("socket sin_family %u\n", socket->sin->sin_family);
-    // printf("sin_port %u\n", htons(socket->sin->sin_port));
+    printf("received connection sin_port %u\n", htons(socket->sin->sin_port));
     // printf("sin_addr %zu\n", socket->sin->sin_addr);
 
     socket->address_len = address_len;
@@ -289,19 +289,9 @@ int microtcp_accept(microtcp_sock_t *socket, struct sockaddr *address,
   /*setting up the socket*/
   socket->ack_number = ntohl(packet_read.seq_number + s);
   socket->init_win_size = MICROTCP_WIN_SIZE;
-  // socket->sin = (struct sockaddr_in)*address;
-  // sin = (struct sockaddr_in *)address;
+
   socket->sin = (struct sockaddr_in *)address;
-  // socket->sin->sin_family = AF_INET;
-  // socket->sin->sin_port = ntohs(sin->sin_port);
-  // socket->sin->sin_addr.s_addr = ntohs(sin->sin_addr.s_addr);
-  // socket->address_len = address_len;
-  // printf("sin_family %u\n", sin->sin_family);
-  // printf("sin_port %u\n", sin->sin_port);
-  // printf("sin_addr %zu\n", sin->sin_addr.s_addr);
-  printf("socket sin_family %u\n", socket->sin->sin_family);
-  printf("sin_port %u\n", htons(socket->sin->sin_port));
-  printf("sin_addr %zu\n", socket->sin->sin_addr);
+  socket->address_len = address_len;
 
   prepare_send_header(&header_snd);
 
@@ -357,6 +347,7 @@ int microtcp_accept(microtcp_sock_t *socket, struct sockaddr *address,
     /*setting up the socket a final time*/
     socket->state = ESTABLISHED;
     socket->recvbuf = malloc(MICROTCP_RECVBUF_LEN * sizeof(uint8_t));
+    printf("telos accept\n");
     return 0;
   } else {
     perror(" seq numbers didnt much with ack numbers");
@@ -605,8 +596,6 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
   message_len = MICROTCP_MSS - sizeof(microtcp_header_t);
   send_buffer = malloc(MICROTCP_MSS);
 
-  printf("Going to send to %zu ip %u port\n", socket->sin->sin_addr.s_addr,
-         htons(socket->sin->sin_port));
   for (i = 0; i < packets_num; i++) {
     printf("h for,%d\n", i);
     prepare_checksum_header(&header_send, socket->seq_number,
@@ -622,10 +611,12 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
     memcpy(send_buffer + sizeof(header_send), buffer + bytes_sent, message_len);
 
     prepare_send_header(&header_send);
+    printf("IP: %zu \n", ntohl(socket->sin->sin_addr.s_addr));
+    printf("Port: %u\n", ntohs(socket->sin->sin_port));
 
-    if (tmp_bytes =
-            sendto(socket->sd, (void *)&send_buffer, MICROTCP_MSS, 0,
-                   (struct sockaddr *)socket->sin, socket->address_len) == -1) {
+    if (tmp_bytes = sendto(socket->sd, (void *)send_buffer /*send_buffer*/,
+                           MICROTCP_MSS, 0, (struct sockaddr *)socket->sin,
+                           socket->address_len) == -1) {
       perror("failed to send the packet\n");
       return actual_bytes_sent;
     }
@@ -661,7 +652,7 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
     prepare_send_header(&header_send);
     /*edw einai smaller*/
     if (tmp_bytes =
-            sendto(socket->sd, (void *)&send_buffer, MICROTCP_MSS, 0,
+            sendto(socket->sd, (void *)send_buffer, MICROTCP_MSS, 0,
                    (struct sockaddr *)socket->sin, socket->address_len) == -1) {
       perror("failed to send the packet\n");
       return actual_bytes_sent;
@@ -701,8 +692,7 @@ ssize_t microtcp_recv(microtcp_sock_t *socket, void *buffer, size_t length,
   uint8_t checksum_buf[MICROTCP_MSS];
   /*Allocate memory to read the packet*/
   header_rcv = (microtcp_header_t *)malloc(sizeof(microtcp_header_t *));
-  printf("Receiving from %u port by socket\n", htons(socket->sin->sin_port));
-  printf("Receiving from %zu ip by socket\n", socket->sin->sin_addr.s_addr);
+
   while (running) {
     /*Waiting fot FIN from D*/
     if (bytes_transfered = recvfrom(socket->sd, rcvbuf, MICROTCP_MSS, 0,
@@ -714,16 +704,22 @@ ssize_t microtcp_recv(microtcp_sock_t *socket, void *buffer, size_t length,
     }
     printf("elaba kati?\n");
     header_rcv = (microtcp_header_t *)rcvbuf;
+    printf("kdhfsghfjg\n");
     data = rcvbuf + sizeof(microtcp_header_t);
     prepare_read_header(&packet_read, header_rcv);
+    printf("kdhfsghfjg\n");
+
     tmp_checksum = ntohl(packet_read.checksum);
     packet_read.checksum = 0;
     for (i = 0; i < MICROTCP_MSS; i++) {
       checksum_buf[i] = 0;
       rcvbuf[i] = 0;
     }
+    printf("kdhfsghfjg\n");
+
     memcpy(checksum_buf, &packet_read, sizeof(packet_read));
     memcpy(checksum_buf + sizeof(packet_read), data, packet_read.data_len);
+    printf("kdhfsghfjg\n");
 
     tmp_calc_checksum = (uint32_t)crc32(checksum_buf, sizeof(checksum_buf));
 

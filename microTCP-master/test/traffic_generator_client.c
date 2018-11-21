@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
   connecting_port = atoi(argv[2]);
   memset(&sin, 0, sizeof(struct sockaddr_in));
   sin.sin_family = AF_INET;
-  sin.sin_port = htons(randomport);
+  sin.sin_port = htons(6000);
   sin.sin_addr.s_addr = INADDR_ANY;
 
   memset(&sin_server, 0, sizeof(struct sockaddr_in));

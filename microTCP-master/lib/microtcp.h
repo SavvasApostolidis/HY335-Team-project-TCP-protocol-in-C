@@ -20,15 +20,14 @@
 
 #ifndef LIB_MICROTCP_H_
 #define LIB_MICROTCP_H_
-#include <stdio.h> //new include for printf
+#include <arpa/inet.h>  //inet_addr
+#include <netdb.h>      //sockaddr
 #include <stdint.h>
-#include <sys/socket.h>
-#include <sys/types.h>
+#include <stdio.h>  //new include for printf
 #include <stdlib.h>
 #include <string.h>
-#include <stdlib.h>
-#include <netdb.h> //sockaddr
-#include <arpa/inet.h> //inet_addr
+#include <sys/socket.h>
+#include <sys/types.h>
 /*
  * Several useful constants
  */
@@ -40,14 +39,12 @@
 #define MICROTCP_INIT_SSTHRESH MICROTCP_WIN_SIZE
 
 /*control bits*/
-#define ACK    	  4096  //0001000000000000
-#define RST		    8192 	//0010000000000000
-#define SYN    	  16384 //0100000000000000	
-#define FIN    	  32768 //1000000000000000
-#define SYN_ACK 	20480	//0101000000000000
-#define FIN_ACK 	36864	//1001000000000000
-
-
+#define ACK 4096       // 0001000000000000
+#define RST 8192       // 0010000000000000
+#define SYN 16384      // 0100000000000000
+#define FIN 32768      // 1000000000000000
+#define SYN_ACK 20480  // 0101000000000000
+#define FIN_ACK 36864  // 1001000000000000
 
 /**
  * Possible states of the microTCP socket
@@ -103,7 +100,6 @@ typedef struct {
   /*Additional fields*/
   struct sockaddr_in *sin;
   socklen_t address_len;
-
 
 } microtcp_sock_t;
 
