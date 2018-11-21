@@ -18,15 +18,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <unistd.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <signal.h>
-#include <random>
+#include <unistd.h>
 #include <chrono>
+#include <random>
 #include <thread>
 
 extern "C" {
@@ -38,41 +38,35 @@ extern "C" {
 
 static bool stop_traffic = false;
 
-
-void
-sig_handler(int signal)
-{
-  if(signal == SIGINT) {
+void sig_handler(int signal) {
+  if (signal == SIGINT) {
     LOG_INFO("Stopping traffic generator...");
     stop_traffic = true;
   }
 }
 
-int
-main (int argc, char **argv)
-{
-  int                   opt;
-  int                   ret;
-  int                   port;
-  int                   mean_inter;
-  microtcp_sock_t       sock;
-  struct sockaddr_in    sin;
-  struct sockaddr       client_addr;
-  socklen_t             client_addr_len;
-  struct sockaddr_in    *addr_in;
-  char                  ip_addr[INET_ADDRSTRLEN];
-  char                  buffer[BUF_LEN];
+int main(int argc, char **argv) {
+  int opt;
+  int ret;
+  int port;
+  int mean_inter;
+  microtcp_sock_t sock;
+  struct sockaddr_in sin;
+  struct sockaddr client_addr;
+  socklen_t client_addr_len;
+  struct sockaddr_in *addr_in;
+  char ip_addr[INET_ADDRSTRLEN];
+  char buffer[BUF_LEN];
 
   /* Create the random generator */
   std::random_device rd;
   std::mt19937 gen(rd());
 
   /* A very easy way to parse command line arguments */
-  while ((opt = getopt (argc, argv, "hp:i:")) != -1) {
-    switch (opt)
-      {
+  while ((opt = getopt(argc, argv, "hp:i:")) != -1) {
+    switch (opt) {
       case 'p':
-        port = atoi (optarg);
+        port = atoi(optarg);
         /* To check or not to check? */
         break;
       case 'i':
@@ -80,17 +74,18 @@ main (int argc, char **argv)
          * Set the mean of the lognormal distribution for the interarrivals
          * in milliseconds (ms)
          */
-        mean_inter = atoi (optarg);
+        mean_inter = atoi(optarg);
         break;
       default:
-        printf (
+        printf(
             "Usage: bandwidth_test -p port -i packet inter-arrival ms"
             "Options:\n"
             "   -p <int>            the port to wait for a peer"
-            "   -i <int>            the mean inter-arrival time in milliseconds of the undeline normal distribution"
+            "   -i <int>            the mean inter-arrival time in "
+            "milliseconds of the undeline normal distribution"
             "   -h                  prints this help\n");
-        exit (EXIT_FAILURE);
-      }
+        exit(EXIT_FAILURE);
+    }
   }
   std::lognormal_distribution<double> dlognormal(log(mean_inter), 0.5);
   LOG_INFO("Creating traffic generator on port %d", port);
@@ -103,21 +98,20 @@ main (int argc, char **argv)
   signal(SIGINT, sig_handler);
 
   /* Create a microtcp socket */
-  sock = microtcp_socket (AF_INET, SOCK_DGRAM, 0);/*to deutero orisma htan 0*/
- /* TODO: some error checking here ??? */
+  sock = microtcp_socket(AF_INET, SOCK_DGRAM, 0); /*to deutero orisma htan 0*/
+  /* TODO: some error checking here ??? */
 
-  memset (&sin, 0, sizeof(struct sockaddr_in));
+  memset(&sin, 0, sizeof(struct sockaddr_in));
   sin.sin_family = AF_INET;
-  sin.sin_port = htons (port);
-  /* Bind to all available network interfaces */
+  sin.sin_port = htons(port);
   sin.sin_addr.s_addr = INADDR_ANY;
+  /* Bind to all available network interfaces */
   // sock.sin.sin_family=AF_INET;
   // sock.sin.sin_port = htons(port);
   // sock.sin.sin_addr.s_addr = INADDR_ANY ;
- 
 
-  if (microtcp_bind (&sock, (struct sockaddr *) &sin,
-                     sizeof(struct sockaddr_in)) == -1) {
+  if (microtcp_bind(&sock, (struct sockaddr *)&sin,
+                    sizeof(struct sockaddr_in)) == -1) {
     LOG_ERROR("Failed to bind");
     return -EXIT_FAILURE;
   }
@@ -131,18 +125,20 @@ main (int argc, char **argv)
   /* Block waiting for a connection */
   client_addr_len = sizeof(struct sockaddr);
   ret = microtcp_accept(&sock, &client_addr, client_addr_len);
-  if(ret != 0) {
+  if (ret != 0) {
     LOG_ERROR("Failed to accept connection");
     return -EXIT_FAILURE;
   }
-  addr_in = (struct sockaddr_in *) &client_addr;
+
+  addr_in = (struct sockaddr_in *)&client_addr;
   inet_ntop(AF_INET, &(addr_in->sin_addr), ip_addr, INET_ADDRSTRLEN);
   LOG_INFO("Peer %s connected.", ip_addr);
-  std::this_thread::sleep_for (std::chrono::seconds(1));
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   LOG_INFO("Start generating traffic...");
 
-  while(stop_traffic == false) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(int(dlognormal(gen))));
+  while (stop_traffic == false) {
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(int(dlognormal(gen))));
     microtcp_send(&sock, buffer, BUF_LEN, 0);
   }
 
@@ -150,5 +146,4 @@ main (int argc, char **argv)
 
   /* SHUT_RDWR can be omitted internally */
   microtcp_shutdown(&sock, SHUT_RDWR);
-
 }
