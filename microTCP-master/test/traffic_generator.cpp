@@ -135,7 +135,6 @@ main (int argc, char **argv)
     LOG_ERROR("Failed to accept connection");
     return -EXIT_FAILURE;
   }
-
   addr_in = (struct sockaddr_in *) &client_addr;
   inet_ntop(AF_INET, &(addr_in->sin_addr), ip_addr, INET_ADDRSTRLEN);
   LOG_INFO("Peer %s connected.", ip_addr);
