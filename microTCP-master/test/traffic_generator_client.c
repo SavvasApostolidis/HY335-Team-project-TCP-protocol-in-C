@@ -35,7 +35,6 @@ static void sig_handler(int signal) {
   if (signal == SIGINT) {
     LOG_INFO("Stopping traffic generator client...");
     running = 0;
-    exit(0);
   }
 }
 
@@ -106,6 +105,7 @@ int main(int argc, char **argv) {
     }
     /* TODO: Measure time */
     /* TODO: Do other stuff... */
+
   }
 
   microtcp_shutdown(&socket, SHUT_RDWR);
