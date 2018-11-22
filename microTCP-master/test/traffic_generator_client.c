@@ -46,6 +46,7 @@ int main(int argc, char **argv) {
   struct sockaddr_in sin, sin_server;  // sin for us sin_server for server
   socklen_t addr_size;
   unsigned short int connecting_port;
+  int shutdown=0;
   ssize_t se, re;
   microtcp_sock_t socket;
   randomport = atoi(argv[1]);
@@ -98,12 +99,15 @@ int main(int argc, char **argv) {
   while (running) {
     /* TODO: Measure time */
     /* TODO: Receive using microtcp_recv()*/
-  printf("we are here\n");
-    microtcp_recv(&socket, buffer, MICROTCP_RECVBUF_LEN, 0);
-    printf("packet rcv\n");
+    shutdown = microtcp_recv(&socket, buffer, MICROTCP_RECVBUF_LEN, 0);
+    printf("packets rcv\n");
+    if(shutdown == -2){
+      running = 0;
+    }
     /* TODO: Measure time */
     /* TODO: Do other stuff... */
   }
 
+  microtcp_shutdown(&socket, SHUT_RDWR);
   /* Ctrl+C pressed! Store properly time measurements for plotting */
 }

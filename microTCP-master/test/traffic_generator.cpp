@@ -42,7 +42,6 @@ void sig_handler(int signal) {
   if (signal == SIGINT) {
     LOG_INFO("Stopping traffic generator...");
     stop_traffic = true;
-    exit(0);
   }
 }
 
@@ -57,7 +56,9 @@ int main(int argc, char **argv) {
   socklen_t client_addr_len;
   struct sockaddr_in *addr_in;
   char ip_addr[INET_ADDRSTRLEN];
-  char buffer[BUF_LEN];
+  char *buffer;
+  buffer = (char *)malloc(2048);
+  strcpy(buffer, "testaki");
 
   /* Create the random generator */
   std::random_device rd;
@@ -142,7 +143,7 @@ int main(int argc, char **argv) {
         std::chrono::milliseconds(int(dlognormal(gen))));
     microtcp_send(&sock, buffer, BUF_LEN, 0);
   }
-
+  printf("Skatoyles\n");
   LOG_INFO("Going to terminate microtcp connection...");
 
   /* SHUT_RDWR can be omitted internally */
