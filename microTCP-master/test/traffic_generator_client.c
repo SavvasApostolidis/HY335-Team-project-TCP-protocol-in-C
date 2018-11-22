@@ -35,6 +35,7 @@ static void sig_handler(int signal) {
   if (signal == SIGINT) {
     LOG_INFO("Stopping traffic generator client...");
     running = 0;
+    exit(0);
   }
 }
 
@@ -92,11 +93,13 @@ int main(int argc, char **argv) {
     perror("FAILD TO Connect to TCP server");
     exit(EXIT_FAILURE);
   }
+  uint8_t buffer[MICROTCP_RECVBUF_LEN];
 
   while (running) {
     /* TODO: Measure time */
     /* TODO: Receive using microtcp_recv()*/
-    microtcp_recv(&socket, NULL, 0, 0);
+  printf("we are here\n");
+    microtcp_recv(&socket, buffer, MICROTCP_RECVBUF_LEN, 0);
     printf("packet rcv\n");
     /* TODO: Measure time */
     /* TODO: Do other stuff... */

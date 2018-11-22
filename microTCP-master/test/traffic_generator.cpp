@@ -42,6 +42,7 @@ void sig_handler(int signal) {
   if (signal == SIGINT) {
     LOG_INFO("Stopping traffic generator...");
     stop_traffic = true;
+    exit(0);
   }
 }
 
