@@ -137,12 +137,15 @@ int microtcp_connect(microtcp_sock_t *socket, const struct sockaddr *address,
   prepare_send_header(&header_snd);
 
   /*send SYN packet*/
+  struct sockaddr_in *sin_ad = (struct sockaddr_in*)address; 
+  printf("sending to ip %s\n", inet_ntoa(sin_ad->sin_addr));
   if (sendto(socket->sd, (void *)&header_snd, sizeof(microtcp_header_t), 0,
              address, address_len) == -1) {
     perror("Send SYN packet failed\n");
     socket->state = INVALID;
     return -1;
   }
+
   socket->seq_number += s;
   /*Waiting for SYN_ACK from server*/
   /*Receive second packet*/
@@ -246,6 +249,7 @@ int microtcp_accept(microtcp_sock_t *socket, struct sockaddr *address,
     socket->state = INVALID;
     return -1;
   }
+  printf("dhsgfsjds\n");
   memcpy(header_rcv, (microtcp_header_t *)rcvbuf, sizeof(microtcp_header_t));
 
   /*isws xreiastei na diabasoume kai ta alla gia to checksum checking*/
@@ -302,6 +306,7 @@ int microtcp_accept(microtcp_sock_t *socket, struct sockaddr *address,
     perror("failed to send synack packet\n");
     return -1;
   }
+  printf("SYN_ACK sended\n");
   socket->seq_number += s;
 
   /*Receive third packet*/
@@ -349,7 +354,6 @@ int microtcp_accept(microtcp_sock_t *socket, struct sockaddr *address,
     socket->state = ESTABLISHED;
     // socket->recvbuf = malloc(MICROTCP_RECVBUF_LEN * sizeof(uint8_t));
     printf("telos accept\n");
-
     return 0;
   } else {
     perror(" seq numbers didnt much with ack numbers");
@@ -610,9 +614,12 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
   // uint8_t checksum_buf;
   size_t i = 0, cleanup;
 
-  packets_num = length / (MICROTCP_MSS - sizeof(microtcp_header_t));
+  //Packet's payload = MICROTCP_MSS
+  // Total size = mss + header
+  packets_num = length / MICROTCP_MSS; //(MICROTCP_MSS - sizeof(microtcp_header_t));
 
-  message_len = MICROTCP_MSS - sizeof(microtcp_header_t);
+  message_len = MICROTCP_MSS; //- sizeof(microtcp_header_t);
+  
 
   for (i = 0; i < packets_num; i++) {
     prepare_checksum_header(&header_send, socket->seq_number,
@@ -633,7 +640,7 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
     memcpy(send_buffer, &header_send, sizeof(header_send));
     memcpy(send_buffer + sizeof(header_send), buffer + bytes_sent, message_len);
 
-    // printf("IP: %zu \n", ntohl(socket->sin->sin_addr.s_addr));
+    // printf("IP: %s \n", inet_ntoa(socket->sin->sin_addr));
     // printf("Port: %u\n", ntohs(socket->sin->sin_port));
 
     if (tmp_bytes = sendto(socket->sd, (void *)send_buffer /*send_buffer*/,
@@ -642,6 +649,7 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
       perror("failed to send the packet\n");
       return actual_bytes_sent;
     }
+    printf("sending %s\n", buffer + bytes_sent);
     socket->seq_number += message_len;
     // socket->seq_number += 1;
     /*At the moment we suppose everything */
@@ -676,7 +684,7 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
       perror("failed to send the packet\n");
       return actual_bytes_sent;
     }
-
+    printf("%s\n", buffer + bytes_sent);
     socket->seq_number += message_len;
     // socket->seq_number += 1;
     /*At the moment we suppose everything */
@@ -776,11 +784,12 @@ ssize_t microtcp_recv(microtcp_sock_t *socket, void *buffer, size_t length,
       socket->packets_received++;
       socket->ack_number= packet_read.seq_number + packet_read.data_len; /*proxoraw kata 1 gia na kanw expect swsto
                                        1h fash*/
-      actual_bytes_rcv += bytes_transfered - sizeof(microtcp_header_t);      
+      actual_bytes_rcv += bytes_transfered - sizeof(microtcp_header_t); 
+      printf("New ack %lu\n",socket->ack_number);     
       memset(data, '\0', packet_read.data_len);
       memcpy(data, checksum_buf + sizeof(microtcp_header_t),
               packet_read.data_len);
-      printf("%s\n", data); /*may induse seg*/
+      printf("Message: %s\n", data); /*may induse seg*/
 
       /*ta tou xronou to do*/
     } else if (packet_read.control == FIN) {
