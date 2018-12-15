@@ -112,6 +112,7 @@ int main(int argc, char **argv) {
   // sock.sin.sin_port = htons(port);
   // sock.sin.sin_addr.s_addr = INADDR_ANY ;
 
+  
   if (microtcp_bind(&sock, (struct sockaddr *)&sin,
                     sizeof(struct sockaddr_in)) == -1) {
     LOG_ERROR("Failed to bind");
@@ -124,7 +125,7 @@ int main(int argc, char **argv) {
    * so we proceed using the equivalent TCP accept()
    */
 
-  /* Block waiting for a connection */
+  /* Block waiting for a connection */  
   client_addr_len = sizeof(struct sockaddr);
   ret = microtcp_accept(&sock, &client_addr, client_addr_len);
   if (ret != 0) {

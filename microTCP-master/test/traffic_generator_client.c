@@ -52,13 +52,13 @@ int main(int argc, char **argv) {
   connecting_port = atoi(argv[2]);
   memset(&sin, 0, sizeof(struct sockaddr_in));
   sin.sin_family = AF_INET;
-  sin.sin_port = htons(6000);
+  sin.sin_port = htons(randomport);
   sin.sin_addr.s_addr = INADDR_ANY;
 
   memset(&sin_server, 0, sizeof(struct sockaddr_in));
   sin_server.sin_family = AF_INET;
   sin_server.sin_port = htons(connecting_port);
-  sin_server.sin_addr.s_addr = inet_addr("127.0.0.1");
+  sin_server.sin_addr.s_addr = inet_addr("147.52.19.17");
 
   socket = microtcp_socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -85,12 +85,12 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
 
-  LOG_INFO("Start receiving traffic from port %u", connecting_port);
+  LOG_INFO("Start receiving traffic from port %u, ip %s", connecting_port, inet_ntoa(sin_server.sin_addr));
   /*TODO: Connect using microtcp_connect() */
   /* Connect to another socket */
   if (microtcp_connect(&socket, (struct sockaddr *)&sin_server,
                        sizeof(struct sockaddr_in)) == -1) {
-    perror("FAILD TO Connect to TCP server");
+    perror("FAILED TO Connect to TCP server");
     exit(EXIT_FAILURE);
   }
   uint8_t buffer[MICROTCP_RECVBUF_LEN];
@@ -98,14 +98,14 @@ int main(int argc, char **argv) {
   while (running) {
     /* TODO: Measure time */
     /* TODO: Receive using microtcp_recv()*/
+
     shutdown = microtcp_recv(&socket, buffer, MICROTCP_RECVBUF_LEN, 0);
-    printf("packets rcv\n");
+    printf("packet rcv\n");
     if(shutdown == -2){
       running = 0;
     }
     /* TODO: Measure time */
     /* TODO: Do other stuff... */
-
   }
 
   microtcp_shutdown(&socket, SHUT_RDWR);
