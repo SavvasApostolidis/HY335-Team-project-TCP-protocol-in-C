@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
   memset(&sin_server, 0, sizeof(struct sockaddr_in));
   sin_server.sin_family = AF_INET;
   sin_server.sin_port = htons(connecting_port);
-  sin_server.sin_addr.s_addr = inet_addr("147.52.19.17");
+  sin_server.sin_addr.s_addr = inet_addr("127.0.0.1");
 
   socket = microtcp_socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -93,14 +93,18 @@ int main(int argc, char **argv) {
     perror("FAILED TO Connect to TCP server");
     exit(EXIT_FAILURE);
   }
-  uint8_t buffer[MICROTCP_RECVBUF_LEN];
-
+  uint8_t buffer[MICROTCP_RECVBUF_LEN];Μ
+  int i;
   while (running) {
     /* TODO: Measure time */
     /* TODO: Receive using microtcp_recv()*/
-
+    memset(buffer, '\0', MICROTCP_RECVBUF_LEN);
     shutdown = microtcp_recv(&socket, buffer, MICROTCP_RECVBUF_LEN, 0);
-    printf("packet rcv\n");
+    printf("in buffer\n");
+    for(i=0;i<MICROTCP_RECVBUF_LEN; i++){
+      printf("%c",buffer[i]);
+    }
+    printf("\n");
     if(shutdown == -2){
       running = 0;
     }

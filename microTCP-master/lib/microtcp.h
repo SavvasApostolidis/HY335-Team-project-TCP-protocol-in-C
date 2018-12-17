@@ -100,6 +100,8 @@ typedef struct {
   /*Additional fields*/
   struct sockaddr_in *sin;
   socklen_t address_len;
+  int buf_start;
+  int empty_start;
 
 } microtcp_sock_t;
 
