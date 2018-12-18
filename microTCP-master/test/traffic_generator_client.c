@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
     perror("FAILED TO Connect to TCP server");
     exit(EXIT_FAILURE);
   }
-  uint8_t buffer[MICROTCP_RECVBUF_LEN];Μ
+  uint8_t buffer[MICROTCP_RECVBUF_LEN];
   int i;
   while (running) {
     /* TODO: Measure time */

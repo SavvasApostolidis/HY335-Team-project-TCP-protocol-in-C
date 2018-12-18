@@ -94,7 +94,7 @@ microtcp_sock_t microtcp_socket(int domain, int type, int protocol) {
   new_socket.packets_lost=0;
   new_socket.bytes_send=0;
   new_socket.bytes_lost=0;
-  new_socket.buf_start=0;
+  new_socket.index=0;
   new_socket.empty_start=0;
   return new_socket;
 }
@@ -654,9 +654,9 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
     // printf("IP: %zu \n", ntohl(socket->sin->sin_addr.s_addr));
     // printf("Port: %u\n", ntohs(socket->sin->sin_port));
 
-    if (tmp_bytes = sendto(socket->sd, (void *)send_buffer /*send_buffer*/,
+    if ((tmp_bytes = sendto(socket->sd, (void *)send_buffer /*send_buffer*/,
                            MICROTCP_MSS+s, 0, (struct sockaddr *)socket->sin,
-                           socket->address_len) == -1) {
+                           socket->address_len)) == -1) {
       perror("failed to send the packet\n");
       return actual_bytes_sent;
     }
@@ -709,7 +709,7 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
     memcpy(send_buffer + sizeof(header_send), buffer + bytes_sent, message_len);
     
     /*Checksums*/
-    tmpChecksum = crc32(send_buffer, sizeof(send_buffer));
+    tmpChecksum = crc32(send_buffer, message_len + s);
     header_send.checksum = tmpChecksum;
 
     prepare_send_header(&header_send);
@@ -718,9 +718,9 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
     memcpy(send_buffer, &header_send, sizeof(header_send));
     memcpy(send_buffer + sizeof(header_send), buffer + bytes_sent, message_len);
 
-    if (tmp_bytes = sendto(socket->sd, (void *)send_buffer /*send_buffer*/,
+    if ((tmp_bytes = sendto(socket->sd, (void *)send_buffer /*send_buffer*/,
                           message_len + s, 0, (struct sockaddr *)socket->sin,
-                          socket->address_len) == -1) {
+                          socket->address_len)) == -1) {
       perror("failed to send the packet\n");
       return actual_bytes_sent;
     }
@@ -800,15 +800,17 @@ ssize_t microtcp_recv(microtcp_sock_t *socket, void *buffer, size_t length,
   uint32_t tmp_calc_checksum;
   uint8_t checksum_buf[MICROTCP_MSS+s];
 
-    while((int)socket->curr_win_size >0 && socket->buf_start < length){
+    while((int)socket->curr_win_size >0 && socket->index < length){
+
       /*Waiting for FIN from D*/
-      if (bytes_transfered = recvfrom(socket->sd, rcvbuf, MICROTCP_MSS+s,0,
+      if ((bytes_transfered = recvfrom(socket->sd, rcvbuf, MICROTCP_MSS+s,0,
                                       (struct sockaddr *)socket->sin,
-                                      &socket->address_len) == -1) {
+                                      &socket->address_len)) == -1) {
         perror("Something went wrong while receiving a packet\n");
         socket->state = INVALID;
         return 0;
       }
+      
       memset(&header_rcv, '\0', sizeof(microtcp_header_t));
       memcpy(&header_rcv, (microtcp_header_t *)rcvbuf, sizeof(microtcp_header_t));
 
@@ -817,21 +819,15 @@ ssize_t microtcp_recv(microtcp_sock_t *socket, void *buffer, size_t length,
       tmp_checksum = packet_read.checksum;
       packet_read.checksum = 0;
 
-      // printf("seq %u\n", packet_read.seq_number);
-      // printf("ack %u\n", packet_read.ack_number);
-      // printf("control %hu\n", packet_read.control);
-      // printf("win %hu\n", packet_read.window);
-      // printf("datalen %hu\n", packet_read.data_len);
-      // printf("checksum %hu\n", packet_read.checksum);
-
-      memset(checksum_buf, '\0', MICROTCP_MSS+s);
+      memset(checksum_buf, '\0', MICROTCP_MSS + s);
       memcpy(checksum_buf, &packet_read, sizeof(microtcp_header_t));
       memcpy(checksum_buf + sizeof(microtcp_header_t),
             rcvbuf + sizeof(microtcp_header_t), packet_read.data_len);
-      tmp_calc_checksum = crc32(checksum_buf, sizeof(checksum_buf));
+      tmp_calc_checksum = crc32(checksum_buf, bytes_transfered);
 
       if (tmp_calc_checksum != tmp_checksum) {
         perror("noise may have altered the bytes in recv\n");
+        printf("bytes transferred %u \n", bytes_transfered);
         printf("%u received, %u calc \n", tmp_checksum, tmp_calc_checksum);
         /*todo*/
         send_dup = 1;
@@ -857,15 +853,15 @@ ssize_t microtcp_recv(microtcp_sock_t *socket, void *buffer, size_t length,
               socket->left_sack = socket->ack_number;
               socket->right_sack = socket->ack_number;
               // memset(socket->recvbuf, '\0', packet_read.data_len);
-              memcpy(socket->recvbuf+socket->buf_start, checksum_buf + sizeof(microtcp_header_t),packet_read.data_len);
-              printf("Message: %s\n", socket->recvbuf + socket->buf_start); 
+              memcpy(socket->recvbuf+socket->index, checksum_buf + sizeof(microtcp_header_t),packet_read.data_len);
+              printf("Message: %s\n", socket->recvbuf + socket->index); 
               // memcpy(buffer, socket->recvbuf, packet_read.data_len);
-              printf("Old start %u \n",socket->buf_start);
-              socket->buf_start += packet_read.data_len;
-              printf("new start %u \n",socket->buf_start);
+              printf("Old start %u \n",socket->index);
+              socket->index += packet_read.data_len;
+              printf("new start %u \n",socket->index);
               /*Change window size*/
               printf("Old win %u \n",socket->curr_win_size);
-              socket->curr_win_size = socket->init_win_size - socket->buf_start;
+              socket->curr_win_size -= packet_read.data_len;//socket->init_win_size - socket->index;
               if( (int)socket->curr_win_size <=0){
                 printf("Rcvbuf filled\n");
                 socket->curr_win_size = 0;
@@ -908,29 +904,8 @@ ssize_t microtcp_recv(microtcp_sock_t *socket, void *buffer, size_t length,
           perror("failed to send the packet\n");
         }
 
-        // if( socket->ack_number == packet_read->seq_number ){
-        //   socket->packets_received++;
-        //   if( packet_read->seq_number + packet_read->data_len == socket->right_sack ){
-        //     /*Ola kala*/
-        //   }
-        //   socket->ack_number= packet_read.seq_number + packet_read.data_len; /*proxoraw kata 1 gia na kanw expect swsto
-        //                                     1h fash*/
-        //   actual_bytes_rcv += bytes_transfered - sizeof(microtcp_header_t);      
-        //   memset(data, '\0', packet_read.data_len);
-        //   memcpy(data, checksum_buf + sizeof(microtcp_header_t),
-        //           packet_read.data_len);
-        //   printf("Message: %s\n", data); /*may induse seg*/
-        // } else if( packet_read->seq_number > socket->ack_number){
-        //   if (socket->left_sack == socket->ack_number){
-        //     socket->left_sack = packet_read->seq_number;
-        //   }
-          
-        //   // socket->left_sack = packet_read->seq_number;
-        // }
-
-        
-
         /*ta tou xronou to do*/
+
       } else if (packet_read.control == FIN) {
         printf("got FIN\n");
         socket->state = CLOSING_BY_PEER;
@@ -949,9 +924,16 @@ ssize_t microtcp_recv(microtcp_sock_t *socket, void *buffer, size_t length,
 
     }
     memcpy(buffer, socket->recvbuf, length);
+    /*shiftare*/
+    // if(length > MICROTCP_RECVBUF_LEN ){
+    //   /*ksanalooparo*/
+    // }
+    // for(i=length; i<index; i++){
+
+    // }
     memset(socket->recvbuf, '\0', MICROTCP_RECVBUF_LEN);
     socket->curr_win_size = MICROTCP_WIN_SIZE;
-    socket->buf_start = 0;
-
+    socket->index = 0;
+    
   return actual_bytes_rcv;
 }
