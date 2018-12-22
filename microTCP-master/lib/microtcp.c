@@ -164,7 +164,7 @@ uint32_t retransmit_send(microtcp_sock_t *socket, const void *buffer, uint32_t s
 
     seq += message_len;
   }
-  
+  socket->packets_send += packets_num;
   return seq; /*san target ack*/
 }
 /*end*/
@@ -623,7 +623,7 @@ int microtcp_shutdown(microtcp_sock_t *socket, int how) {
     }
     printf("3\n");
     if (packet_read.ack_number != socket->seq_number) {
-      perror("expected N+s didnt get it\n");
+      printf("expected N+s didnt get it phra seq number %u\n",packet_read.ack_number);//htan perror
       socket->state = INVALID;
       return -1;
     }
@@ -742,7 +742,6 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
 
   remaining = length;
   while( data_sent <= length ){
-    
     bytes_to_send = MIN_3(socket->curr_win_size,socket->cwnd,remaining);
 
     packets_num = bytes_to_send / MICROTCP_MSS; //- sizeof(microtcp_header_t));
@@ -776,7 +775,7 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
 
       // printf("IP: %zu \n", ntohl(socket->sin->sin_addr.s_addr));
       // printf("Port: %u\n", ntohs(socket->sin->sin_port));
-
+      printf("%u 8a steilw seq number mesa  sth for\n",socket->seq_number);
       if ((tmp_bytes = sendto(socket->sd, (void *)send_buffer, MICROTCP_MSS+s, 0, (struct sockaddr *)socket->sin,
                             socket->address_len)) == -1) {
         perror("failed to send the packet\n");
@@ -989,6 +988,7 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
 
     remaining -= bytes_to_send;
     data_sent += bytes_to_send;
+    socket->packets_send += packets_num;
 
   }/*ekso while*/
   
@@ -1006,8 +1006,7 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
   //   // printf("datalen %u\n", header_send.data_len);
   //   // printf("checksum %hu\n", header_send.checksum);
 
-  socket->bytes_send = actual_data_sent;
-  socket->packets_send += packets_num;
+  socket->bytes_send = actual_data_sent;  
 
   return socket->bytes_send;
 }

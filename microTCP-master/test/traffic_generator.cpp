@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
 
   while (stop_traffic == false) {
     std::this_thread::sleep_for(
-        std::chrono::milliseconds(int(dlognormal(gen))));
+    std::chrono::milliseconds(int(dlognormal(gen))));
     microtcp_send(&sock, buffer, BUF_LEN, 0);
   }
   printf("Skatoyles\n");
