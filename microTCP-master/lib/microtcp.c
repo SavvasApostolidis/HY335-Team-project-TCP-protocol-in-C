@@ -918,7 +918,7 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
         last_left = packet_read.left_sack;
         dup_cnt++;
         /*Check if its the 3rd dplicate*/
-        if(dup_cnt == 2 ){
+        if(dup_cnt == 3 ){
           dup_cnt = 0;
           if(!(packet_read.ack_number == packet_read.left_sack && packet_read.ack_number==packet_read.right_sack)){
             retransmit = 1; /*Retransmit flag value for 3ple dup*/
