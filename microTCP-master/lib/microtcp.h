@@ -28,6 +28,8 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <time.h> 
+ 
 /*
  * Several useful constants
  */
@@ -101,7 +103,15 @@ typedef struct {
   struct sockaddr_in *sin;
   socklen_t address_len;
   int index;
-  int empty_start;
+  int poll_flag;
+  double rx_min_inter;
+  double rx_max_inter;
+  double rx_mean_inter;
+  double tx_min_inter;
+  double tx_max_inter;
+  double tx_mean_inter;
+  struct timespec last_sent;
+  struct timespec last_rcvd;
 
 } microtcp_sock_t;
 

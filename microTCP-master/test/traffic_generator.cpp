@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
     std::chrono::milliseconds(int(dlognormal(gen))));
     microtcp_send(&sock, buffer, BUF_LEN, 0);
   }
-  printf("Skatoyles\n");
+  printf("Skatoyles phase B\n");
   LOG_INFO("Going to terminate microtcp connection...");
 
   /* SHUT_RDWR can be omitted internally */
