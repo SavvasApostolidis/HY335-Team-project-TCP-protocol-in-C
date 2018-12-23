@@ -137,7 +137,7 @@ uint32_t retransmit_send(microtcp_sock_t *socket, const void *buffer, uint32_t s
       socket->tx_mean_inter = (socket->tx_mean_inter + elapsed) / socket->packets_send;
     }
     
-    printf("Retransmiting : %s\n", send_buffer+sizeof(header_send));
+    //printf("Retransmiting : %s\n", send_buffer+sizeof(header_send));
 
     seq += message_len;
     /*At the moment we suppose everything */
@@ -272,6 +272,7 @@ int microtcp_connect(microtcp_sock_t *socket, const struct sockaddr *address,
   uint32_t tmp_checksum;
   uint8_t checksum_buf[sizeof(microtcp_header_t)];
 
+  printf("1\n");
   srand(time(NULL));
   /*Send first packet*/
   /*Set header fields*/
@@ -289,13 +290,15 @@ int microtcp_connect(microtcp_sock_t *socket, const struct sockaddr *address,
   prepare_send_header(&header_snd);
 	ssize_t snt = 0;
   /*send SYN packet*/
+  printf("2\n");
   if ((snt=sendto(socket->sd, (void *)&header_snd, sizeof(microtcp_header_t), 0,
              address, address_len)) == -1) {
     perror("Send SYN packet failed\n");
+    printf("skata\n");
     socket->state = INVALID;
     return -1;
   }
-
+  printf("3\n");
   socket->seq_number += s;
   /*Waiting for SYN_ACK from server*/
   /*Receive second packet*/
@@ -307,7 +310,7 @@ int microtcp_connect(microtcp_sock_t *socket, const struct sockaddr *address,
     socket->state = INVALID;
     return -1;
   }
-
+  printf("4\n");
   memcpy(header_rcv, (microtcp_header_t *)rcvbuf, sizeof(microtcp_header_t));
 
   prepare_read_header(&packet_read, header_rcv);
@@ -351,13 +354,14 @@ int microtcp_connect(microtcp_sock_t *socket, const struct sockaddr *address,
   memcpy(checksum_buf, &header_snd, sizeof(microtcp_header_t));
   header_snd.checksum = crc32(checksum_buf, sizeof(checksum_buf));
   prepare_send_header(&header_snd);
-
+  printf("5\n");
   if (sendto(socket->sd, (void *)&header_snd, sizeof(microtcp_header_t), 0,
              address, address_len) == -1) {
     perror("Send SYN packet failed\n");
     socket->state = INVALID;
     return -1;
   } else {
+    printf("6\n");
     socket->state = ESTABLISHED;
     socket->ack_number = packet_read.seq_number +s;  // den lambanoume genika acks opote doesnt matter for now
     socket->left_sack = socket->ack_number;
@@ -369,6 +373,8 @@ int microtcp_connect(microtcp_sock_t *socket, const struct sockaddr *address,
     // socket->recvbuf = malloc(MICROTCP_RECVBUF_LEN * sizeof(uint8_t));
 
     printf("Telos connect\n");
+
+    printf("%u my sec,%u their seq,%d s",socket->seq_number,packet_read.seq_number+s,s);
     return 0;
   }
 }
@@ -388,16 +394,17 @@ int microtcp_accept(microtcp_sock_t *socket, struct sockaddr *address,
   uint8_t checksum_buf[sizeof(microtcp_header_t)];
 
   srand(time(NULL));
-
+  printf("1\n");
   /*RECEIVE 1st Packet*/
   header_rcv = (microtcp_header_t *)malloc(sizeof(microtcp_header_t *));
-
+  
   if (recvfrom(socket->sd, rcvbuf, sizeof(microtcp_header_t), 0, address,
                &address_len) == -1) {
-    perror("recvfrom failed\n");
+    perror("recvfrom failed edw pera\n");
     socket->state = INVALID;
     return -1;
   }
+  printf("2\n");
   memcpy(header_rcv, (microtcp_header_t *)rcvbuf, sizeof(microtcp_header_t));
 
   /*isws xreiastei na diabasoume kai ta alla gia to checksum checking*/
@@ -440,7 +447,7 @@ int microtcp_accept(microtcp_sock_t *socket, struct sockaddr *address,
   prepare_send_header(&header_snd);
 
   /*setting up the socket*/
-  socket->ack_number = ntohl(packet_read.seq_number + s);
+  socket->ack_number = packet_read.seq_number + s;
   socket->init_win_size = MICROTCP_WIN_SIZE;
 
   socket->sin = (struct sockaddr_in *)address;
@@ -495,14 +502,14 @@ int microtcp_accept(microtcp_sock_t *socket, struct sockaddr *address,
     socket->state = INVALID;
     return -1;
   }
-  if (packet_read.ack_number == (socket->seq_number) || packet_read.seq_number == socket->ack_number) {
+  if (packet_read.ack_number == socket->seq_number && packet_read.seq_number == socket->ack_number) {
     /*setting up the socket a final time*/
     socket->state = ESTABLISHED;
     // socket->recvbuf = malloc(MICROTCP_RECVBUF_LEN * sizeof(uint8_t));
     socket->left_sack = socket->ack_number;
     socket->right_sack = socket->ack_number;
     printf("telos accept\n");
-
+    printf("%u my ack accept and my sec number %u also %d \n",socket->ack_number,socket->seq_number,s);
     return 0;
   } else {
     perror(" seq numbers didnt much with ack numbers");
@@ -845,7 +852,7 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
         }
       }
 
-      printf("Sending : %s\n", send_buffer+sizeof(header_send));
+     // printf("Sending : %s\n", send_buffer+sizeof(header_send));
 
       socket->seq_number += message_len;
       /*At the moment we suppose everything */
@@ -874,7 +881,7 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
       memset(send_buffer, '\0', MICROTCP_MSS+s);
       memcpy(send_buffer, &header_send, sizeof(header_send));
       memcpy(send_buffer + sizeof(header_send), buffer + data_sent, message_len);
-
+      printf("%u 8a steilw seq number mesa sth for\n",socket->seq_number);
       if ((tmp_bytes = sendto(socket->sd, (void *)send_buffer, message_len + s, 0, (struct sockaddr *)socket->sin,
                             socket->address_len)) == -1) {
         perror("failed to send the packet\n");
@@ -896,7 +903,7 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
         }
       }
 
-      printf("Sending : %s\n", send_buffer+sizeof(header_send));
+     // printf("Sending : %s\n", send_buffer+sizeof(header_send));
       socket->seq_number += message_len;
       /*At the moment we suppose everything */
       data_sent += message_len;
@@ -1249,6 +1256,7 @@ ssize_t microtcp_recv(microtcp_sock_t *socket, void *buffer, size_t length,
       } else if( packet_read.seq_number < socket->ack_number ||
                           (socket->left_sack <= packet_read.seq_number && packet_read.seq_number <= socket->right_sack) ){
         /*ignore*/
+        printf("%u my ack ,%u their seq\n",socket->ack_number,packet_read.seq_number);
         printf("ignore we have it already\n");
       }
 
