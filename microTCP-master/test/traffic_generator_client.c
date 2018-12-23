@@ -101,6 +101,8 @@ int main(int argc, char **argv) {
     memset(buffer, '\0', MICROTCP_RECVBUF_LEN);
     // sleep(1);
     shutdown = microtcp_recv(&socket, buffer, MICROTCP_RECVBUF_LEN, 0);
+    
+    printf("%d phra apth recv\n",shutdown);
     printf("in client\n");
     for(i=0;i<MICROTCP_RECVBUF_LEN; i++){
       printf("%c",buffer[i]);

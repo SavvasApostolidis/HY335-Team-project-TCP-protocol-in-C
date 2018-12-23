@@ -978,6 +978,7 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
       /*Its an ack*/
       if(packet_read.ack_number == target_ack){
         /*ir8an osa perimena*/
+        last_ack_rcvd = packet_read.ack_number;
         printf("Got ack for ack num %u, RTT\n", packet_read.ack_number );
         if( !slow_start ){
           /*Congestion avoidance*/
@@ -1059,8 +1060,7 @@ ssize_t microtcp_send(microtcp_sock_t *socket, const void *buffer,
     socket->packets_send += packets_num;
 
   }/*ekso while*/
-
-  socket->bytes_send = actual_data_sent;  
+  socket->bytes_send = last_ack_rcvd - init_seq;  
   socket->tx_mean_inter = (socket->tx_mean_inter + elapsed) / socket->packets_send;
 
   return socket->bytes_send;
@@ -1073,6 +1073,7 @@ ssize_t microtcp_recv(microtcp_sock_t *socket, void *buffer, size_t length,
   size_t remaining =0;
   int send_dup = 0;
   int tmpindex=0;
+  int flashed_fin=0;
   size_t i = 0;
   int s = sizeof(microtcp_header_t);
   uint8_t rcvbuf[MICROTCP_MSS+s];
@@ -1106,7 +1107,7 @@ ssize_t microtcp_recv(microtcp_sock_t *socket, void *buffer, size_t length,
       socket->index -= length;
       memset(socket->recvbuf+socket->index,'\0',MICROTCP_RECVBUF_LEN - socket->index);
     }
-    if( length > socket->index){
+    if( length > socket->index && socket->index !=0){
       memcpy(buffer, socket->recvbuf, socket->index);
       memset(socket->recvbuf,'\0',MICROTCP_RECVBUF_LEN);
       socket->index = 0;
@@ -1294,12 +1295,27 @@ ssize_t microtcp_recv(microtcp_sock_t *socket, void *buffer, size_t length,
       socket->packets_received++;
       socket->ack_number = packet_read.seq_number;
       socket->bytes_received += actual_bytes_rcv;
-      socket->bytes_lost = total_bytes_lost;   
-      if(socket->index == 0){
+      socket->bytes_lost = total_bytes_lost;
+
+      if( length <= socket->index){
+        memcpy(buffer, socket->recvbuf, length);
+        for(i = 0; i< socket->index - length; i++){
+         socket->recvbuf[i] = socket->recvbuf[length+i];
+        }
+        socket->index -= length;
+        memset(socket->recvbuf+socket->index,'\0',MICROTCP_RECVBUF_LEN - socket->index);
+      }
+      if( length > socket->index && socket->index != 0){
+        memcpy(buffer, socket->recvbuf, socket->index);
+        memset(socket->recvbuf,'\0',MICROTCP_RECVBUF_LEN);
+        flashed_fin = socket->index;
+        socket->index = 0;
+        return flashed_fin;
+      }    
+      if( socket->index == 0) {
         return -1;
-      } else{
-        printf("index %u\n", socket->index);
-        return actual_bytes_rcv;
+      }else{
+        return length;
       }
     }
 
@@ -1307,5 +1323,5 @@ ssize_t microtcp_recv(microtcp_sock_t *socket, void *buffer, size_t length,
 
   socket->bytes_received += actual_bytes_rcv;
   socket->bytes_lost = total_bytes_lost;
-  return actual_bytes_rcv;
+  return length;
 }
